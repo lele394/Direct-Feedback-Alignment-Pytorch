@@ -39,7 +39,6 @@ if True:
 x = np.concatenate((x1, x2))
 y = np.concatenate((y1, y2))
 
-print(len(x1), len(x2), len(y1), len(y2), len(x), len(y))
 dataset = np.array([ np.array([x[i], y[i]]) for i in range(len(x))   ])
 
 
@@ -60,9 +59,9 @@ expected_results = np.array(
 # Define the model
 model = Sequential([
     layers.Input(shape=(2,)),             # Input layer with 2 neurons
-    layers.Dense(100, activation='relu'),   # First hidden layer with 32 neurons
-    layers.Dense(100, activation='relu'),   # Second hidden layer with 32 neurons
-    layers.Dense(100, activation='relu'),   # Third hidden layer with 32 neurons
+    layers.Dense(50, activation='relu'),   # First hidden layer with 32 neurons
+    layers.Dense(50, activation='relu'),   # Second hidden layer with 32 neurons
+    layers.Dense(50, activation='relu'),   # Third hidden layer with 32 neurons
     layers.Dense(2)                        # Output layer with 2 neurons
 ])
 
