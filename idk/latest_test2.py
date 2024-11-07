@@ -5,6 +5,14 @@ from tensorflow.keras import Sequential
 from tensorflow.keras import layers
 from tensorflow.keras.optimizers import SGD
 
+
+
+
+
+
+
+
+
 # Dataset generation
 def CreateSpiral(n_points=1000, start_theta=0, expansion_rate=0.2, turns=2):
     theta = np.linspace(0, turns * 2 * np.pi, n_points)
@@ -41,15 +49,32 @@ class DFAModel(tf.keras.Model):
         self.output_layer = layers.Dense(2)
         
         # Random feedback weights for DFA
-        self.feedback1 = tf.random.normal((2, 50))
-        self.feedback2 = tf.random.normal((2, 50))
-        self.feedback3 = tf.random.normal((2, 50))
+        # self.feedback1 = tf.random.normal((50, 2), dtype=tf.float32)  
+        # self.feedback2 = tf.random.normal((50, 2), dtype=tf.float32)  
+        # self.feedback3 = tf.random.normal((50, 2), dtype=tf.float32)  
 
-    def call(self, inputs):
-        x = self.dense1(inputs)
-        x = self.dense2(x)
-        x = self.dense3(x)
-        return self.output_layer(x)
+        self.feedback_mat = [
+             tf.random.normal((2,50), dtype=tf.float32) for _ in range(3) # (2,50) for dimension matching
+        ]
+
+
+    def call(self, inputs, no_feedback):
+        # Forward pass
+        a1 = self.dense1(inputs)  # Pre-activation output of layer 1
+        h1 = tf.nn.relu(a1)  # Activation output of layer 1
+        
+        a2 = self.dense2(h1)  # Pre-activation output of layer 2
+        h2 = tf.nn.relu(a2)  # Activation output of layer 2
+        
+        a3 = self.dense3(h2)  # Pre-activation output of layer 3
+        h3 = tf.nn.relu(a3)  # Activation output of layer 3
+        
+        ANN_output = self.output_layer(h3)  # Final output
+
+
+
+        if no_feedback:return ANN_output # Use this when dealing with backprop
+        else:return ANN_output, a1, a2, a3, h1, h2, h3  # Return output and pre-activations
 
 
 
@@ -62,12 +87,13 @@ def custom_backprop(model, inputs, targets, learning_rate=0.01):
 
     # CURRENTLY NOT DFA BUT BACKPROP FOR TESTING PURPOSES
 
+
     # Define the loss function
     loss_fn = tf.keras.losses.MeanSquaredError()
 
     with tf.GradientTape() as tape:
         # Forward pass through the model
-        outputs = model(inputs)  # Forward pass through the entire model
+        outputs = model(inputs, no_feedback=True)  # Forward pass through the entire model
         loss = loss_fn(targets, outputs)  # Compute the loss
 
     # Compute gradients for all trainable variables in the model
@@ -94,44 +120,75 @@ def softmax(x):
 def relu_derivative(x):
     return np.where(x > 0, 1, 0)
 
+def relu(x):
+    return max(0,x)
 
 
 
+
+
+
+
+
+
+# ========================================== DFA HERE, SUPPOSEDLY ===============================================
 
 # Custom DFA weight update function
 def custom_dfa_training_step(model, inputs, targets, learning_rate=0.01):
+    
+    # Get batch size
+    batch_size = inputs.shape[0]
+    
+    # 1. Forward pass to get the output from the model
+    ANN_output, a1, a2, a3, h1, h2, h3 = model(inputs, no_feedback=False)
+    
+    # 2. Define the error
+    error = ANN_output - targets  # Error as defined: ANN_output - targets
 
 
-    # ========================== FORWARD PASS =======================================
+    # 3. Define random matrices for weight updates (feedback)
+    # They are initialized in the model
 
-    # layer 1
-    a1 = np.dot(inputs, model.dense1.kernel) + model.dense1.bias
-    z1 = np.maximum(0, a1)  # ReLU activation 
+    # 4. Update weights for each layer
 
-    # layer 2
-    a2 = np.dot(z1, model.dense2.kernel) + model.dense2.bias
-    z2 = np.maximum(0, a2)  # ReLU activation 
+    def ComputeLayerDeltaW(i_layer, a, error, h):
+        B = model.feedback_mat[i_layer] # Random B matrix
+        d_activation = relu_derivative(a)  # F' (here ReLu')
+        delta_a = np.dot(error, B) * d_activation  # delta_a = (B.e)xF'(a)
+        # Convert delta_a1 to float32 if necessary
+        delta_a = tf.convert_to_tensor(delta_a, dtype=tf.float32)
 
-    # layer 3 
-    a3 = np.dot(z2, model.dense3.kernel) + model.dense3.bias
-    z3 = np.maximum(0, a3)  # ReLU activation 
+        # Normalize by batch size
+        delta_a /= batch_size  # Avoid exponential growth
 
-    # output layer
-    aO = np.dot(z3, model.output_layer.kernel) + model.output_layer.bias
-    zO = np.maximum(0, aO)  # ReLU activation 
+        delta_a_transpose = tf.transpose(delta_a)
+        delta_W = -tf.matmul(delta_a_transpose, h) # delta_w = -delta_a.h
 
+        return delta_W 
 
-    # ======================== RANDOM WEIGHTS MATRICES B_i =========================
+    # 4.2
+    delta_W1 = ComputeLayerDeltaW(0, a1, error, inputs)
+    delta_W2 = ComputeLayerDeltaW(1, a2, error, h1)
+    delta_W3 = ComputeLayerDeltaW(2, a3, error, h2)
 
-    B_O = np.random.normal(size=model.output_layer.kernel.shape)
-    B_3 = np.random.normal(size=model.dense3.kernel.shape)
-    B_2 = np.random.normal(size=model.dense2.kernel.shape)
-    B_1 = np.random.normal(size=model.dense1.kernel.shape)
+    # 4.3 assigning weights
+    weights1 = model.dense1.kernel 
+    delta_W1 = learning_rate * delta_W1  # Clip the gradient updates
+    weights1.assign(weights1 + tf.transpose(delta_W1))
 
-    # ======================== ERROR e =============================================
+    weights2 = model.dense2.kernel  
+    delta_W2 = learning_rate * delta_W2  # Clip the gradient updates
+    weights2.assign(weights2 + tf.transpose(delta_W2))
 
-    e = zO - targets
-    print(e)
+    weights3 = model.dense3.kernel  
+    delta_W3 = learning_rate * delta_W3  # Clip the gradient updates
+    weights3.assign(weights3 + tf.transpose(delta_W3))
+
+    # Update for the output layer
+    output_weights = model.output_layer.kernel  # Get the weights of the output layer
+    delta_output_weights = -tf.matmul(tf.transpose(error), h3)   # Compute the update for output layer
+    output_weights.assign(output_weights + tf.transpose(delta_output_weights))  # Update the output layer weights
+
 
 
 
@@ -164,7 +221,8 @@ dfa_model = DFAModel()
 
 # Forward pass with dummy data to build the model
 dummy_input = tf.random.normal((1, dataset.shape[1]))  # Match the shape of your input data
-_ = dfa_model(dummy_input)  # Perform a forward pass to build the model
+_ = dfa_model(dummy_input, no_feedback=True)  # Perform a forward pass to build the model
+dfa_model.summary()
 
 
 # Training loop
@@ -181,6 +239,7 @@ for epoch in range(epochs):
         x_batch = dataset[i:i + batch_size]
         y_batch = expected_results[i:i + batch_size]
         custom_dfa_training_step(dfa_model, x_batch, y_batch, learning_rate)
+        # custom_backprop(dfa_model, x_batch, y_batch, learning_rate) # <= This works well
 
 
 
@@ -188,7 +247,8 @@ for epoch in range(epochs):
 
 
 # Evaluate the model
-predictions = dfa_model(dataset)
+predictions = dfa_model(dataset, no_feedback=True)
+print(predictions)
 accuracy = np.mean(np.argmax(predictions, axis=1) == np.argmax(expected_results, axis=1))
 print(f"Accuracy: {accuracy}")
 
@@ -211,7 +271,7 @@ testset = np.array(pred_square) # comment to disable square test
 
 
 
-test_predictions = dfa_model(testset)
+test_predictions = dfa_model(testset, no_feedback=True)
 
 # Classify and plot the results
 spiral1 = []
@@ -239,5 +299,4 @@ PlotSpiral(spiralUnk, "Unknown", "g.")
 plt.legend()
 plt.show()
 
-dfa_model.summary()
 
