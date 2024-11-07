@@ -57,8 +57,13 @@
 - Convert to a dynamic neural network
 
 
+## Day 6 07/11 - Working prototype
 
+- Switched to PyTorch using Anas' base work
+- Finally successfully generalized the model to take an arbitrary number of hidden layers and size.
 
+### Remarks
+- My implementation, though heavily based on Anas' doesn't seem to exhibit the diverging problems he faced for some reason.
 
 
 
