@@ -61,14 +61,47 @@
 
 - Switched to PyTorch using Anas' base work
 - Finally successfully generalized the model to take an arbitrary number of hidden layers and size.
+- Creating v1 library
 
 ### Remarks
 - My implementation, though heavily based on Anas' doesn't seem to exhibit the diverging problems he faced for some reason.
 
 
 
+## Day 7 14/11 - Working prototype, really
+
+- Debugged issues with dimensions, was an error on the dimensions of e. Needed to do B_i * e for each row and do the average of each values.
+- Fixed some dimensions issues. Code no longer strictly following Nokland's paper though. 
+
+### Remarks
+- Try to update bias and run on MNIST.
 
 
+## Day 9 28/11 - Working prototype analog to Nokland's paper
+
+- Finally have a prototype working with an implementation of DFA analog to Nokland's paper.
+- Added `Sigmoid(X)` to the output.
+
+- Successfully parametrized `forward_pass`.
+- Successfully parametrized `dfa_backward_pass`.
+- Successfully parametrized weights and bias updates.
+
+- Added and reworked XOR problem solving.
+- MNIST problem solved.
+
+### Ongoing
+- Parametrization of the number of layers and number of neurons. [DONE]
+- Whole training comparison between DFA and Backprop graph. [TBD]
+- Step comparison between DFA and Backprop graph. [TBD]
+
+### Rework
+
+- Moved `forward_pass` and `dfa_backward_pass` inside the `DynamicModel` class.
+- Created `forward_pass_light` that acts as a basic forward pass that does not record activations. Please use it when `a` and `ħ` are not necessary.
+- Parametrized the hidden layers, output, input, activation function and output activation function.
+
+### Notes
+- Check what's going on with feedback matrices dimensions. [DONE]
 
 
 
