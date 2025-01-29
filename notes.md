@@ -1,5 +1,5 @@
 # Free Project
-
+---
 ## Day 1 26/09 - Test with a spiral - commit `e12a21c`
 
  - Spiral classification task : 2 spirals (here archimedean) are created. Network is trained to determine to which spiral the point belongs to. Then we try with a new test sets that implement noise, in the form of a random translation of the point (in a reasonnable limit).
@@ -12,6 +12,7 @@
  - use tanh activation function instead of relu.
  - try implementing DFA as a training algorithm for the network and replicate results.
 
+---
 
 ## Day 2 03/10 - Implementating DFA - commit `8e10aaa`
 
@@ -25,6 +26,7 @@
 ### To Do Next
 - Finish DFA implementation, it's not working yet.
 
+---
 
 ## Day 3 10/10 - Debug
 
@@ -34,6 +36,7 @@
 ### To Do Next
 - Make it work
 
+---
 
 ## Day 4 17/10 - Keep debuggin
 
@@ -44,6 +47,7 @@
 ### To Do Next
 - Make it work
 
+---
 
 ## Day 5 24/10 - Studying instability
 
@@ -56,6 +60,7 @@
 - switch to PyTorch
 - Convert to a dynamic neural network
 
+---
 
 ## Day 6 07/11 - Working prototype
 
@@ -67,6 +72,7 @@
 - My implementation, though heavily based on Anas' doesn't seem to exhibit the diverging problems he faced for some reason.
 
 
+---
 
 ## Day 7 14/11 - Working prototype, really
 
@@ -76,8 +82,9 @@
 ### Remarks
 - Try to update bias and run on MNIST.
 
+---
 
-## Day 9 28/11 - Working prototype analog to Nokland's paper
+## Day (and week-end) 9 28/11 - Working prototype analog to Nokland's paper - commit `29aed50`
 
 - Finally have a prototype working with an implementation of DFA analog to Nokland's paper.
 - Added `Sigmoid(X)` to the output.
@@ -103,20 +110,75 @@
 ### Notes
 - Check what's going on with feedback matrices dimensions. [DONE]
 
+---
+
+## Day 10 05/12 - Backprop and angles comparison Part 1.
+
+- Added `main_angles.py` to compute angles using `mixed_comparison_train_loop.py`
+- Added comparison between DFA and Backprop
+
+> Spotted an issue where, DFA really doesn't like using Softmax as the output and CrossEntropyLoss. It ends up converging to around 10% error on Mnist and diverges back.
+> Issue spotted with Backprop and CrossEntropyLoss. It cannot converge. Switched back to MSE.
+
+### Rework
+- Now using different files
+
+### Ongoing
+- Create skeleteon for mixed analysis of the angles [DONE]
+- Add angle calculations [ONGOING]
+
+### To Do 
+- Start report
+
+
+---
+
+## Day 11 12/12 - Backprop and angles comparison Part 2.
+
+- Added angle comparison between DFA and Backprop.
+- Created a new DFA train loop using an average of the batch for training instead of each item of the batch. New function is called `train_averaged`.
+
+---
+
+## Day ?? 16/01 - Averages and averages per classes work
+
+- 
 
 
 
-
-
-
-
-
-
-
-
-
-
+---
 # Notes
 
-What they call non linearity f seems to be the activation 
+`DFA_Backprop_comparison.py` contains a comparison between the DFA and Backprop.
+`main_angles.py` is used to compare angles between a DFA and a backprop step.
+`test_averages.py` is a test with the `train_averages` train loop which uses an average over the entire batch instead of each item of the batch.
 
+---
+
+
+### Averages tests
+
+80 epochs
+100 = 10.81
+80 = 29.9
+70 = 47.31
+60 = 52.87
+50 = 70.21
+40 = 78.41
+30 = 83.72
+20 = 87.54
+10 = 90.39
+
+
+### Per class averages
+Fucker still plateaus
+
+80 epochs
+30 = 92.56
+60 = 88.45
+100 = 84.79
+200 = 81.51
+300 = 81.18
+500 = 78.75
+1000 = 78.12
+4000 = 80.25
